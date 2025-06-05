@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pkdriller Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @keyframes holoMove {
+      0% { background-position: 0% 50%, 100% 50%; }
+      50% { background-position: 100% 50%, 0% 50%; }
+      100% { background-position: 0% 50%, 100% 50%; }
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Orbitron', 'Segoe UI', Arial, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(0,255,255,0.16) 0%, rgba(255,0,255,0.13) 100%),
+        repeating-linear-gradient(45deg, #0ff 0 2px, transparent 2px 40px),
+        repeating-linear-gradient(-45deg, #f0f 0 2px, transparent 2px 40px);
+      background-size: 300% 300%, 160px 160px, 160px 160px;
+      animation: holoMove 12s linear infinite;
+      color: #fff;
+      overflow: hidden;
+    }
+    .overlay {
+      position: fixed;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .chat-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 95vw;
+      max-width: 460px;
+      height: 80vh;
+      max-height: 600px;
+      background: rgba(10, 20, 40, 0.85);
+      border-radius: 24px;
+      box-shadow: 0 0 54px 6px #00fff7a0, 0 0 8px 0 #ff00f7a0;
+      border: 1.5px solid #55ffe3aa;
+      backdrop-filter: blur(11px);
+      display: flex;
+      flex-direction: column;
+      z-index: 2;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 1.3em 2em 1em 2em;
+      background: linear-gradient(90deg,rgba(0,255,255,0.18),rgba(255,0,255,0.15));
+      border-bottom: 1.5px solid #00ffe6a0;
+      font-size: 1.3em;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-align: center;
+      color: #00ffe3;
+      text-shadow: 0 0 8px #ff00f7,0 0 4px #00fff7;
+      font-family: 'Orbitron', 'Segoe UI', Arial, sans-serif;
+    }
+    .chat-box {
+      flex: 1;
+      padding: 1.1em;
+      overflow-y: auto;
+      font-size: 1.05em;
+      scrollbar-width: thin;
+      scrollbar-color: #0ff #222;
+    }
+    .chat-msg {
+      margin: 1.3em 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.19em;
+    }
+    .chat-msg.user {
+      align-items: flex-end;
+    }
+    .chat-msg.bot {
+      align-items: flex-start;
+    }
+    .msg-bubble {
+      max-width: 85%;
+      padding: 0.85em 1.2em;
+      border-radius: 18px 18px 4px 18px;
+      background: linear-gradient(110deg,#262a40 70%,#00fff750 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 1em;
+      box-shadow: 0 1px 9px 0 #00fff7a2;
+      border: 1px solid #00fff760;
+      backdrop-filter: blur(2.5px);
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    .chat-msg.user .msg-bubble {
+      background: linear-gradient(110deg,#232040 70%,#ff00f750 100%);
+      border: 1px solid #ff00f760;
+      align-self: flex-end;
+      text-align: right;
+    }
+    .chat-msg.bot .msg-bubble {
+      align-self: flex-start;
+      text-align: left;
+    }
+    .chat-input-bar {
+      display: flex;
+      background: rgba(0,0,0,0.20);
+      border-top: 1.5px solid #00ffe6a0;
+      padding: 0.7em 1em;
+      gap: 0.7em;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 0.8em 1em;
+      border: none;
+      border-radius: 11px;
+      font-size: 1.04em;
+      background: rgba(41, 230, 255, 0.08);
+      color: #fff;
+      outline: none;
+      font-family: inherit;
+      box-shadow: 0 0 0 1.5px #0ff8 inset;
+      transition: box-shadow 0.2s;
+    }
+    .chat-input:focus {
+      box-shadow: 0 0 0 2.5px #ff00f7cc inset;
+    }
+    .send-btn {
+      background: linear-gradient(90deg,#00fff7 0,#ff00f7 100%);
+      color: #191f28;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      font-weight: bold;
+      padding: 0.75em 1.3em;
+      cursor: pointer;
+      box-shadow: 0 1px 8px 0 #00fff7a1;
+      transition: background 0.2s, color 0.2s;
+      outline: none;
+    }
+    .send-btn:active {
+      background: linear-gradient(90deg,#ff00f7 0,#00fff7 100%);
+      color: #fff;
+    }
+    @media (max-width: 600px) {
+      .chat-container {
+        max-width: 99vw;
+        height: 98vh;
+        max-height: 99vh;
+      }
+      .chat-header {
+        font-size: 1.1em;
+        padding: 1em 1em 0.7em 1em;
+      }
+      .chat-input-bar {
+        padding: 0.6em 0.6em;
+      }
+    }
+    .scanline {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px 2px,
+        #00fff730 3px 4px,
+        transparent 5px 14px
+      );
+      mix-blend-mode: lighten;
+      opacity: 0.08;
+      z-index: 1;
+      animation: scanmove 11s linear infinite;
+    }
+    @keyframes scanmove {
+      0% { background-position-y: 0; }
+      100% { background-position-y: 100px; }
+    }
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity:1; }
+      20%, 22%, 24%, 55% { opacity:0.6; }
+    }
+    .chat-header {
+      animation: flicker 2.5s infinite alternate;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <div class="scanline"></div>
+  <div class="chat-container">
+    <div class="chat-header">PKDRILLER CHATBOT</div>
+    <div class="chat-box" id="chat-box"></div>
+    <form class="chat-input-bar" id="chat-form" autocomplete="off">
+      <input
+        class="chat-input"
+        id="chat-input"
+        type="text"
+        placeholder="Ask anything…"
+        required
+        autocomplete="off"
+        spellcheck="true"
+      >
+      <button class="send-btn" type="submit">Send</button>
+    </form>
+  </div>
+  <script>
+    // OWNER NAME (your GitHub username or desired display)
+    const OWNER_NAME = "Pkdriller";
+    const BOTNAME = "Pkdriller Chatbot";
+
+    function appendMessage(role, text) {
+      const box = document.getElementById('chat-box');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-msg ${role}`;
+      msgDiv.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g, "<br>")}</div>`;
+      box.appendChild(msgDiv);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function showTyping() {
+      const box = document.getElementById('chat-box');
+      const typing = document.createElement('div');
+      typing.className = 'chat-msg bot';
+      typing.id = 'typing-msg';
+      typing.innerHTML = `<div class="msg-bubble"><span class="typing-dots">▌</span></div>`;
+      box.appendChild(typing);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typing = document.getElementById('typing-msg');
+      if (typing) typing.remove();
+    }
+
+    // Modify bot reply to always mention the owner on first message and in about/ownership queries
+    function processBotReply(userMsg, reply) {
+      // If the user is asking about ownership, or on the first message, inject ownership
+      const normalized = userMsg.toLowerCase();
+      if (
+        normalized.includes("who is the owner")
+        || normalized.includes("who owns")
+        || normalized.includes("your owner")
+        || normalized.includes("who created")
+        || normalized.includes("made you")
+        || normalized.includes("who built")
+        || normalized.includes("author")
+        || normalized.includes("developer")
+        || normalized.includes("admin")
+        || normalized.includes("owner")
+        || normalized.includes("what is your name")
+        || normalized.includes("who are you")
+        || normalized.includes("your name")
+        || normalized.includes("name of the bot")
+        || normalized.includes("bot name")
+      ) {
+        return `I am <b>${BOTNAME}</b>, owned and managed by <b>${OWNER_NAME}</b>.<br><br>${reply}`;
+      }
+      return reply;
+    }
+
+    // API: Use OpenAI/Claude/any public endpoint for demo
+    async function fetchBotReply(query) {
+      try {
+        const OPENAI_KEY = '';
+        if (OPENAI_KEY) {
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + OPENAI_KEY
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{ role: 'user', content: query }],
+              max_tokens: 256,
+              temperature: 0.7
+            })
+          });
+          const data = await res.json();
+          return data.choices?.[0]?.message?.content?.trim() ||
+            "Sorry, I couldn't find an answer.";
+        }
+      } catch(e) {}
+      try {
+        const res = await fetch(
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.extract) {
+            return `<b>${data.title}</b><br>${data.extract}`;
+          }
+        }
+      } catch (e) {}
+      try {
+        const res = await fetch(
+          `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=0&skip_disambig=1`);
+        const data = await res.json();
+        if (data.AbstractText) {
+          return data.AbstractText;
+        } else if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+          return data.RelatedTopics[0].Text;
+        }
+      } catch (e) {}
+      return "Sorry, I couldn't find an answer for that.";
+    }
+
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    let isFirstMessage = true;
+    chatForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const userMsg = chatInput.value.trim();
+      if (!userMsg) return;
+      appendMessage('user', userMsg);
+      chatInput.value = '';
+      showTyping();
+      let reply = await fetchBotReply(userMsg);
+      removeTyping();
+      // Always show owner in first bot reply
+      if (isFirstMessage) {
+        reply = `👋 <b>Hello, I am <span style="color:#00ffe3">${BOTNAME}</span>!</b><br>
+        I am owned and managed by <b>${OWNER_NAME}</b>.<br>
+        Ask me anything — technology, science, history, or more. My answers are fetched live from the web.<br><br>${reply}`;
+        isFirstMessage = false;
+      } else {
+        reply = processBotReply(userMsg, reply);
+      }
+      appendMessage('bot', reply);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      let greeting = `👋 <b>Hello, I am <span style="color:#00ffe3">${BOTNAME}</span>!</b><br>
+      I am owned and managed by <b>${OWNER_NAME}</b>.<br>
+      Ask me anything — technology, science, history, or more. My answers are fetched live from the web.`;
+      appendMessage('bot', greeting);
+      isFirstMessage = false;
+    });
+  </script>
+</body>
+</html>
